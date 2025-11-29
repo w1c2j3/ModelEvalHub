@@ -1,0 +1,34 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/api",
+    "crates/domain",
+    "crates/worker",
+    "crates/shared",
+    "crates/integrations/lm_eval_harness",
+    "crates/integrations/opencompass",
+    "crates/integrations/helm",
+    "crates/integrations/text2image_benchmark",
+]
+
+[workspace.package]
+edition = "2021"
+license = "Apache-2.0"
+rust-version = "1.77"
+
+[workspace.dependencies]
+anyhow = "1.0"
+async-trait = "0.1"
+axum = { version = "0.7", features = ["macros", "tracing"] }
+chrono = { version = "0.4", features = ["serde"] }
+config = "0.14"
+deadpool-redis = { version = "0.12", features = ["serde"] }
+futures = "0.3"
+redis = { version = "0.24", features = ["tokio-comp"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+thiserror = "1.0"
+tokio = { version = "1.37", features = ["full"] }
+tracing = "0.1"
+uuid = { version = "1.7", features = ["v4", "serde"] }
+

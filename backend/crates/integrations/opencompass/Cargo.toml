@@ -1,0 +1,16 @@
+[package]
+name = "integration-opencompass"
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+anyhow.workspace = true
+async-trait.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tokio.workspace = true
+uuid.workspace = true
+unified-domain = { path = "../../domain" }
+unified-shared = { path = "../../shared" }
+
