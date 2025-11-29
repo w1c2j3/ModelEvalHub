@@ -18,6 +18,25 @@ Thumbs.db
 /lm-evaluation-harness/
 /opencompass/
 /opik/
+/evals/
+/scripts/
+/sdks/
+/tests_end_to_end/
+/tests_load/
+/apps/
+/deployment/
+/scripts/
+/sdks/
+/tests_end_to_end/
+/tests_load/
+/apps/
+/deployment/
+/scripts/
+/sdks/
+/tests_end_to_end/
+/tests_load/
+/apps/
+/deployment/
 
 # --- Build artifacts ---
 target/
