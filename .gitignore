@@ -1,0 +1,39 @@
+# --- OS & Editor ---
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# --- Tooling / Local Config ---
+/.cursor/
+.env
+.env.* 
+!.env.example
+.venv/
+
+# --- External Repos (keep local only) ---
+/deepeval/
+/helm/
+/langfuse/
+/lm-evaluation-harness/
+/opencompass/
+/opik/
+
+# --- Build artifacts ---
+target/
+dist/
+build/
+coverage/
+
+# --- Node / Frontend ---
+node_modules/
+pnpm-lock.yaml
+
+# --- Rust ---
+Cargo.lock
+
+# --- Misc cache ---
+*.log
+*.tmp
+/runs/
+
