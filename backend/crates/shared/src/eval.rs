@@ -103,9 +103,17 @@ pub struct ResourceConfig {
 #[serde(tag = "mode", rename_all = "snake_case")]
 pub enum OutputConfig {
     DbOnly,
-    ObjectStore { samples_uri: String, format: String },
-    ClickHouse { table: String },
-    Hybrid { ch_table: String, samples_uri: Option<String> },
+    ObjectStore {
+        samples_uri: String,
+        format: String,
+    },
+    ClickHouse {
+        table: String,
+    },
+    Hybrid {
+        ch_table: String,
+        samples_uri: Option<String>,
+    },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -202,4 +210,3 @@ pub enum RunStatus {
     TimedOut,
     Cancelled,
 }
-

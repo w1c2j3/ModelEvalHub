@@ -42,11 +42,13 @@ pub async fn list(pool: &DbPool) -> Result<Vec<Project>, DomainError> {
 }
 
 pub async fn get(pool: &DbPool, id: &Uuid) -> Result<Project, DomainError> {
-    let row = sqlx::query("SELECT id, name, description, created_at, updated_at FROM projects WHERE id = ?")
-        .bind(id.to_string())
-        .fetch_optional(pool)
-        .await
-        .map_err(|e| DomainError::Internal(e.to_string()))?;
+    let row = sqlx::query(
+        "SELECT id, name, description, created_at, updated_at FROM projects WHERE id = ?",
+    )
+    .bind(id.to_string())
+    .fetch_optional(pool)
+    .await
+    .map_err(|e| DomainError::Internal(e.to_string()))?;
 
     match row {
         Some(row) => row_to_project(&row),
@@ -77,4 +79,3 @@ pub async fn create(pool: &DbPool, payload: NewProject) -> Result<Project, Domai
         updated_at: now,
     })
 }
-

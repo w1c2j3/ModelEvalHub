@@ -9,6 +9,8 @@ pub struct Settings {
     pub redis: RedisSettings,
     pub queues: QueueSettings,
     pub integrations: IntegrationSettings,
+    pub clickhouse: Option<ClickhouseSettings>,
+    pub object_store: Option<ObjectStoreSettings>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -35,6 +37,26 @@ pub struct IntegrationSettings {
     pub third_party_root: String,
 }
 
+#[derive(Debug, Clone, Deserialize)]
+pub struct ClickhouseSettings {
+    pub url: String,
+    pub database: String,
+    pub username: Option<String>,
+    pub password: Option<String>,
+    pub samples_table: String,
+    pub metrics_table: String,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct ObjectStoreSettings {
+    pub endpoint: String,
+    pub region: Option<String>,
+    pub bucket: String,
+    pub access_key: String,
+    pub secret_key: String,
+    pub use_path_style: bool,
+}
+
 impl Settings {
     pub fn load() -> Result<Self, ConfigError> {
         let mut builder = Config::builder()
@@ -47,12 +69,10 @@ impl Settings {
             );
 
         if let Ok(env_name) = env::var("APP_ENV") {
-            builder = builder.add_source(
-                File::with_name(&format!("config/{}", env_name)).required(false),
-            );
+            builder = builder
+                .add_source(File::with_name(&format!("config/{}", env_name)).required(false));
         }
 
         builder.build()?.try_deserialize()
     }
 }
-

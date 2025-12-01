@@ -1,59 +1,71 @@
 use anyhow::Context;
-use async_trait::async_trait;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
+use thiserror::Error;
 use tokio::process::Command;
-use unified_domain::result_store::ResultStore;
-use unified_shared::eval::{EvalConfig, EvalResult};
+use unified_shared::eval::{EvalConfig, EvalErrorPayload, EvalResult};
 use unified_shared::settings::Settings;
 
-#[async_trait]
-pub trait EvalRunner {
-    async fn run(
-        &self,
-        config: &EvalConfig,
-        result_store: &dyn ResultStore,
-    ) -> anyhow::Result<()>;
+#[derive(Debug, Error)]
+pub enum RunnerError {
+    #[error("evaluation failure")]
+    Eval(EvalErrorPayload),
+    #[error(transparent)]
+    Io(#[from] anyhow::Error),
+    #[error("engine not supported")]
+    NotSupported,
 }
 
 pub struct LmEvalRunner {
-    pub settings: Settings,
+    harness_root: PathBuf,
 }
 
-#[async_trait]
-impl EvalRunner for LmEvalRunner {
-    async fn run(
-        &self,
-        config: &EvalConfig,
-        _result_store: &dyn ResultStore,
-    ) -> anyhow::Result<()> {
+impl LmEvalRunner {
+    pub fn new(settings: &Settings) -> Self {
+        let root = Path::new(&settings.integrations.third_party_root).join("lm-evaluation-harness");
+        Self { harness_root: root }
+    }
+
+    pub async fn run(&self, config: &EvalConfig) -> Result<EvalResult, RunnerError> {
         let run_dir = PathBuf::from(format!("runs/{}", config.run_id));
         tokio::fs::create_dir_all(&run_dir).await?;
         let config_path = run_dir.join("config.json");
         tokio::fs::write(&config_path, serde_json::to_vec_pretty(config)?).await?;
 
-        let python = Command::new("python")
-            .arg("-m")
+        let mut cmd = Command::new("python");
+        cmd.arg("-m")
             .arg("eval_runner")
             .arg("--run-dir")
             .arg(&run_dir)
             .env("EVAL_RUN_ID", config.run_id.to_string())
-            .env("EVAL_RUN_DIR", &run_dir)
-            .output()
-            .await?;
+            .env("EVAL_RUN_DIR", &run_dir);
+        if self.harness_root.exists() {
+            cmd.current_dir(&self.harness_root);
+        }
 
-        if python.status.success() {
+        let output = cmd.output().await?;
+        if output.status.success() {
             let result_path = run_dir.join("result.json");
             if result_path.exists() {
                 let data = tokio::fs::read(result_path).await?;
-                let _result: EvalResult = serde_json::from_slice(&data)?;
-                // TODO: persist metrics & samples via result_store
+                let result: EvalResult =
+                    serde_json::from_slice(&data).context("invalid eval result json")?;
+                Ok(result)
+            } else {
+                Err(anyhow::anyhow!("result.json missing").into())
             }
-            Ok(())
         } else {
-            let stderr = String::from_utf8_lossy(&python.stderr);
-            Err(anyhow::anyhow!("lm-eval runner failed: {stderr}"))
-                .context("lm-eval-harness process failed")
+            let error_path = run_dir.join("error.json");
+            if error_path.exists() {
+                let data = tokio::fs::read(error_path).await?;
+                let payload: EvalErrorPayload =
+                    serde_json::from_slice(&data).context("invalid error payload")?;
+                Err(RunnerError::Eval(payload))
+            } else {
+                let stderr = String::from_utf8_lossy(&output.stderr);
+                Err(RunnerError::Io(anyhow::anyhow!(
+                    "lm-eval harness failed: {stderr}"
+                )))
+            }
         }
     }
 }
-

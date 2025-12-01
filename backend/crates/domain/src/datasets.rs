@@ -62,9 +62,9 @@ pub async fn create(pool: &DbPool, payload: NewDataset) -> Result<Dataset, Domai
     let id = Uuid::new_v4();
     let now = Utc::now();
     let schema_str = match payload.schema {
-        Some(ref value) => Some(
-            serde_json::to_string(value).map_err(|e| DomainError::Internal(e.to_string()))?,
-        ),
+        Some(ref value) => {
+            Some(serde_json::to_string(value).map_err(|e| DomainError::Internal(e.to_string()))?)
+        }
         None => None,
     };
 
@@ -92,4 +92,3 @@ pub async fn create(pool: &DbPool, payload: NewDataset) -> Result<Dataset, Domai
         created_at: now,
     })
 }
-

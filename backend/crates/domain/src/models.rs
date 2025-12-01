@@ -128,7 +128,10 @@ fn row_to_checkpoint(row: &MySqlRow) -> Result<Checkpoint, DomainError> {
     })
 }
 
-pub async fn list_families(pool: &DbPool, project_id: &Uuid) -> Result<Vec<ModelFamily>, DomainError> {
+pub async fn list_families(
+    pool: &DbPool,
+    project_id: &Uuid,
+) -> Result<Vec<ModelFamily>, DomainError> {
     let rows = sqlx::query(
         "SELECT id, project_id, name, model_type, description, created_at, updated_at FROM model_families WHERE project_id = ? ORDER BY created_at DESC",
     )
@@ -140,7 +143,10 @@ pub async fn list_families(pool: &DbPool, project_id: &Uuid) -> Result<Vec<Model
     rows.iter().map(row_to_family).collect()
 }
 
-pub async fn create_family(pool: &DbPool, payload: NewModelFamily) -> Result<ModelFamily, DomainError> {
+pub async fn create_family(
+    pool: &DbPool,
+    payload: NewModelFamily,
+) -> Result<ModelFamily, DomainError> {
     let id = Uuid::new_v4();
     let now = Utc::now();
     sqlx::query("INSERT INTO model_families (id, project_id, name, model_type, description, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)")
@@ -166,7 +172,10 @@ pub async fn create_family(pool: &DbPool, payload: NewModelFamily) -> Result<Mod
     })
 }
 
-pub async fn list_impls(pool: &DbPool, project_id: &Uuid) -> Result<Vec<ModelImplementation>, DomainError> {
+pub async fn list_impls(
+    pool: &DbPool,
+    project_id: &Uuid,
+) -> Result<Vec<ModelImplementation>, DomainError> {
     let rows = sqlx::query(
         "SELECT id, project_id, family_id, name, repo_url, repo_reference, runtime_type, config_path, default_task_types, created_at, updated_at FROM model_impls WHERE project_id = ? ORDER BY created_at DESC",
     )
@@ -178,7 +187,10 @@ pub async fn list_impls(pool: &DbPool, project_id: &Uuid) -> Result<Vec<ModelImp
     rows.iter().map(row_to_impl).collect()
 }
 
-pub async fn create_impl(pool: &DbPool, payload: NewModelImplementation) -> Result<ModelImplementation, DomainError> {
+pub async fn create_impl(
+    pool: &DbPool,
+    payload: NewModelImplementation,
+) -> Result<ModelImplementation, DomainError> {
     let id = Uuid::new_v4();
     let now = Utc::now();
     let default_task_types = serde_json::to_string(&payload.default_task_types)
@@ -215,7 +227,10 @@ pub async fn create_impl(pool: &DbPool, payload: NewModelImplementation) -> Resu
     })
 }
 
-pub async fn list_checkpoints(pool: &DbPool, model_impl_id: &Uuid) -> Result<Vec<Checkpoint>, DomainError> {
+pub async fn list_checkpoints(
+    pool: &DbPool,
+    model_impl_id: &Uuid,
+) -> Result<Vec<Checkpoint>, DomainError> {
     let rows = sqlx::query(
         "SELECT id, project_id, model_impl_id, name, weights_uri, step, training_summary, created_at FROM checkpoints WHERE model_impl_id = ? ORDER BY created_at DESC",
     )
@@ -227,13 +242,16 @@ pub async fn list_checkpoints(pool: &DbPool, model_impl_id: &Uuid) -> Result<Vec
     rows.iter().map(row_to_checkpoint).collect()
 }
 
-pub async fn create_checkpoint(pool: &DbPool, payload: NewCheckpoint) -> Result<Checkpoint, DomainError> {
+pub async fn create_checkpoint(
+    pool: &DbPool,
+    payload: NewCheckpoint,
+) -> Result<Checkpoint, DomainError> {
     let id = Uuid::new_v4();
     let now = Utc::now();
     let summary_str = match payload.training_summary {
-        Some(ref value) => Some(
-            serde_json::to_string(value).map_err(|e| DomainError::Internal(e.to_string()))?,
-        ),
+        Some(ref value) => {
+            Some(serde_json::to_string(value).map_err(|e| DomainError::Internal(e.to_string()))?)
+        }
         None => None,
     };
 
@@ -261,4 +279,3 @@ pub async fn create_checkpoint(pool: &DbPool, payload: NewCheckpoint) -> Result<
         created_at: now,
     })
 }
-

@@ -90,9 +90,9 @@ pub async fn create(pool: &DbPool, payload: NewExperiment) -> Result<Experiment,
     )
     .map_err(|e| DomainError::Internal(e.to_string()))?;
     let global_config_str = match payload.global_config {
-        Some(ref value) => Some(
-            serde_json::to_string(value).map_err(|e| DomainError::Internal(e.to_string()))?,
-        ),
+        Some(ref value) => {
+            Some(serde_json::to_string(value).map_err(|e| DomainError::Internal(e.to_string()))?)
+        }
         None => None,
     };
 
@@ -120,4 +120,3 @@ pub async fn create(pool: &DbPool, payload: NewExperiment) -> Result<Experiment,
         created_at: now,
     })
 }
-

@@ -178,25 +178,41 @@ pub async fn update_status(
     status: RunStatus,
     error: Option<EvalErrorPayload>,
 ) -> Result<(), DomainError> {
-    sqlx::query(
-        "UPDATE runs SET status = ?, error_kind = ?, error_code = ?, error_message = ?, error_engine = ?, error_details_json = ?, updated_at = NOW() WHERE id = ?",
-    )
-    .bind(status_to_str(status))
-    .bind(error.as_ref().map(|e| format!("{:?}", e.kind).to_lowercase()))
-    .bind(error.as_ref().and_then(|e| e.code.clone()))
-    .bind(error.as_ref().map(|e| e.message.clone()))
-    .bind(error.as_ref().and_then(|e| e.engine.clone()))
-    .bind(
-        error
-            .as_ref()
-            .and_then(|e| e.details.clone())
-            .map(|d| serde_json::to_string(&d).unwrap_or_else(|_| "{}".into())),
-    )
-    .bind(id.to_string())
-    .execute(pool)
-    .await
-    .map_err(|e| DomainError::Internal(e.to_string()))?;
+    let mut query = String::from("UPDATE runs SET ");
+    match status {
+        RunStatus::Running => query.push_str("started_at = IFNULL(started_at, NOW()), "),
+        RunStatus::Completed
+        | RunStatus::FailedConfig
+        | RunStatus::FailedEngine
+        | RunStatus::FailedInfra
+        | RunStatus::TimedOut
+        | RunStatus::Cancelled => query.push_str("finished_at = NOW(), "),
+        _ => {}
+    }
+    query.push_str(
+        "status = ?, error_kind = ?, error_code = ?, error_message = ?, error_engine = ?, error_details_json = ?, updated_at = NOW() WHERE id = ?",
+    );
+
+    sqlx::query(&query)
+        .bind(status_to_str(status))
+        .bind(
+            error
+                .as_ref()
+                .map(|e| format!("{:?}", e.kind).to_lowercase()),
+        )
+        .bind(error.as_ref().and_then(|e| e.code.clone()))
+        .bind(error.as_ref().map(|e| e.message.clone()))
+        .bind(error.as_ref().and_then(|e| e.engine.clone()))
+        .bind(
+            error
+                .as_ref()
+                .and_then(|e| e.details.clone())
+                .map(|d| serde_json::to_string(&d).unwrap_or_else(|_| "{}".into())),
+        )
+        .bind(id.to_string())
+        .execute(pool)
+        .await
+        .map_err(|e| DomainError::Internal(e.to_string()))?;
 
     Ok(())
 }
-

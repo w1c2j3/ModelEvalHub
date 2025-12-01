@@ -79,4 +79,3 @@ pub async fn save_records(pool: &DbPool, records: &[MetricRecord]) -> Result<(),
     }
     Ok(())
 }
-

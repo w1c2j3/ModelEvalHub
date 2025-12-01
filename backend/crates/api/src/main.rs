@@ -23,8 +23,8 @@ use unified_domain::projects::{self, NewProject, Project};
 use unified_domain::runs::{self, NewRun, Run};
 use unified_domain::sample_outputs;
 use unified_domain::tasks::{self, NewTask, Task};
-use unified_shared::eval::{EvalConfig, RunStatus};
 use unified_shared::error::DomainError;
+use unified_shared::eval::{EvalConfig, RunStatus};
 use unified_shared::settings::Settings;
 use uuid::Uuid;
 
@@ -67,11 +67,11 @@ async fn main() -> anyhow::Result<()> {
         )
         .route("/datasets", get(list_datasets).post(create_dataset))
         .route("/tasks", get(list_tasks).post(create_task))
-        .route("/experiments", get(list_experiments).post(create_experiment))
         .route(
-            "/experiments/:id/compile",
-            post(compile_experiment),
+            "/experiments",
+            get(list_experiments).post(create_experiment),
         )
+        .route("/experiments/:id/compile", post(compile_experiment))
         .route("/runs", get(list_runs))
         .route("/runs/:id", get(get_run))
         .route("/runs/:id/enqueue", post(enqueue_run))
@@ -109,7 +109,9 @@ struct RunQuery {
     run_id: Uuid,
 }
 
-async fn list_projects(State(state): State<SharedState>) -> Result<Json<Vec<Project>>, DomainError> {
+async fn list_projects(
+    State(state): State<SharedState>,
+) -> Result<Json<Vec<Project>>, DomainError> {
     let projects = projects::list(&state.db).await?;
     Ok(Json(projects))
 }
@@ -393,8 +395,14 @@ async fn compile_experiment(
     for run_req in payload.runs {
         let mut config = run_req.eval_config;
         if let Some(obj) = config.as_object_mut() {
-            obj.insert("experiment_id".into(), Value::String(experiment_id.to_string()));
-            obj.insert("project_id".into(), Value::String(experiment.project_id.to_string()));
+            obj.insert(
+                "experiment_id".into(),
+                Value::String(experiment_id.to_string()),
+            );
+            obj.insert(
+                "project_id".into(),
+                Value::String(experiment.project_id.to_string()),
+            );
         }
         let new_run = NewRun {
             experiment_id,
@@ -481,9 +489,7 @@ struct RemoteTestResponse {
     message: String,
 }
 
-async fn trigger_remote_test(
-    Json(payload): Json<RemoteTestRequest>,
-) -> impl IntoResponse {
+async fn trigger_remote_test(Json(payload): Json<RemoteTestRequest>) -> impl IntoResponse {
     let body = RemoteTestResponse {
         message: format!(
             "Remote test placeholder queued for project {}",
@@ -492,4 +498,3 @@ async fn trigger_remote_test(
     };
     (StatusCode::ACCEPTED, Json(body))
 }
-

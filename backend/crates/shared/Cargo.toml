@@ -12,4 +12,8 @@ serde.workspace = true
 serde_json.workspace = true
 thiserror.workspace = true
 uuid.workspace = true
+clickhouse.workspace = true
+aws-config.workspace = true
+aws-sdk-s3.workspace = true
+aws-smithy-types.workspace = true
 

@@ -17,4 +17,5 @@ uuid.workspace = true
 sqlx.workspace = true
 unified-domain = { path = "../domain" }
 unified-shared = { path = "../shared" }
+integration-lm-eval-harness = { path = "../integrations/lm_eval_harness" }
 

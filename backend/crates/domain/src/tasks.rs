@@ -66,12 +66,12 @@ pub async fn list(pool: &DbPool, project_id: &Uuid) -> Result<Vec<Task>, DomainE
 pub async fn create(pool: &DbPool, payload: NewTask) -> Result<Task, DomainError> {
     let id = Uuid::new_v4();
     let now = Utc::now();
-    let eval_config_str =
-        serde_json::to_string(&payload.eval_config).map_err(|e| DomainError::Internal(e.to_string()))?;
+    let eval_config_str = serde_json::to_string(&payload.eval_config)
+        .map_err(|e| DomainError::Internal(e.to_string()))?;
     let default_metrics_str = match payload.default_metrics {
-        Some(ref value) => Some(
-            serde_json::to_string(value).map_err(|e| DomainError::Internal(e.to_string()))?,
-        ),
+        Some(ref value) => {
+            Some(serde_json::to_string(value).map_err(|e| DomainError::Internal(e.to_string()))?)
+        }
         None => None,
     };
 
@@ -101,4 +101,3 @@ pub async fn create(pool: &DbPool, payload: NewTask) -> Result<Task, DomainError
         created_at: now,
     })
 }
-

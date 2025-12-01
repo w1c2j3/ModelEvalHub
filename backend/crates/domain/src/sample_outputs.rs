@@ -102,4 +102,3 @@ pub async fn save_inline(
         samples: records.to_vec(),
     })
 }
-

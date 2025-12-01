@@ -20,12 +20,7 @@ impl IntoResponse for DomainError {
             DomainError::NotFound(msg) => (StatusCode::NOT_FOUND, msg).into_response(),
             DomainError::Validation(msg) => (StatusCode::BAD_REQUEST, msg).into_response(),
             DomainError::Conflict(msg) => (StatusCode::CONFLICT, msg).into_response(),
-            DomainError::Internal(msg) => (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                msg,
-            )
-                .into_response(),
+            DomainError::Internal(msg) => (StatusCode::INTERNAL_SERVER_ERROR, msg).into_response(),
         }
     }
 }
-

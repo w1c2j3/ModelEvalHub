@@ -14,3 +14,19 @@ max_gpus_total = 1
 [integrations]
 third_party_root = "./third_party"
 
+[clickhouse]
+url = "http://localhost:8123"
+database = "unified_eval"
+username = "default"
+password = ""
+samples_table = "runs_samples"
+metrics_table = "runs_metrics"
+
+[object_store]
+endpoint = "http://localhost:9000"
+region = "us-east-1"
+bucket = "unified-eval"
+access_key = "minioadmin"
+secret_key = "minioadmin"
+use_path_style = true
+

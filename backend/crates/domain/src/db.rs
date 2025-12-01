@@ -9,4 +9,3 @@ pub async fn init_pool(database_url: &str) -> Result<DbPool, sqlx::Error> {
         .connect(database_url)
         .await
 }
-
