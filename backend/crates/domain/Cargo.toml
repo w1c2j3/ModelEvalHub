@@ -14,7 +14,5 @@ thiserror.workspace = true
 uuid.workspace = true
 unified-shared = { path = "../shared" }
 clickhouse.workspace = true
-aws-config.workspace = true
-aws-sdk-s3.workspace = true
-aws-smithy-types.workspace = true
+s3.workspace = true
 

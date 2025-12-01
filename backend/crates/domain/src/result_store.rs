@@ -1,11 +1,12 @@
-use async_trait::async_trait;
-use aws_config;
-use aws_sdk_s3::config::{Credentials, Region};
-use aws_sdk_s3::primitives::ByteStream;
-use clickhouse::{Client as ClickHouseClient, Row};
 use std::io::Write;
 use std::sync::Arc;
-use std::sync::Arc;
+
+use anyhow::bail;
+use anyhow::bail;
+use async_trait::async_trait;
+use clickhouse::{Client as ClickHouseClient, Row};
+use s3::creds::Credentials;
+use s3::{Bucket, Region};
 use unified_shared::eval::{
     EvalConfig, EvalResult, MetricRecord, OutputConfig, SampleRecord, SampleResultLocation,
 };
@@ -169,7 +170,32 @@ impl ResultStore for ClickHouseResultStore {
 
 pub struct ObjectStoreResultStore {
     pub settings: ObjectStoreSettings,
-    pub client: aws_sdk_s3::Client,
+    pub bucket: Bucket,
+}
+
+impl ObjectStoreResultStore {
+    pub fn new(settings: ObjectStoreSettings) -> anyhow::Result<Self> {
+        let region = settings
+            .region
+            .clone()
+            .map(Region::from)
+            .unwrap_or_else(|| Region::new("us-east-1"));
+        let credentials = Credentials::new(
+            Some(&settings.access_key),
+            Some(&settings.secret_key),
+            None,
+            None,
+            None,
+        )?;
+        let mut bucket = Bucket::new(&settings.bucket, region, credentials)?;
+        bucket = if settings.use_path_style {
+            bucket.with_path_style()
+        } else {
+            bucket
+        };
+        bucket.set_endpoint(&settings.endpoint)?;
+        Ok(Self { settings, bucket })
+    }
 }
 
 #[async_trait]
@@ -196,17 +222,18 @@ impl ResultStore for ObjectStoreResultStore {
                 serde_json::to_string(record).unwrap_or_else(|_| "{}".into())
             )?;
         }
-        use aws_sdk_s3::primitives::ByteStream;
-        self.client
-            .put_object()
-            .bucket(&self.settings.bucket)
-            .key(&key)
-            .body(ByteStream::from(body))
-            .send()
-            .await?;
+        let (_, code) = self.bucket.put_object(&key, &body).await?;
+        if code >= 300 {
+            bail!("failed to upload samples to object store (status {code})");
+        }
+        let base = format!(
+            "{}/{}",
+            self.settings.endpoint.trim_end_matches('/'),
+            self.settings.bucket
+        );
 
         Ok(SampleResultLocation::ObjectStore {
-            uri: format!("{}/{}", self.settings.bucket, key),
+            uri: format!("{}/{}", base, key),
             format: "jsonl".into(),
         })
     }
@@ -245,28 +272,9 @@ impl ResultStoreHandles {
             })
         });
 
-        let object_store = if let Some(cfg) = settings.object_store.as_ref() {
-            let mut loader = aws_config::from_env().endpoint_url(&cfg.endpoint);
-            if let Some(region) = &cfg.region {
-                loader = loader.region(Region::new(region.clone()));
-            }
-            let creds = Credentials::new(
-                cfg.access_key.clone(),
-                cfg.secret_key.clone(),
-                None,
-                None,
-                "static",
-            );
-            loader = loader.credentials_provider(creds);
-            let aws_cfg = loader.load().await;
-            let client = aws_sdk_s3::Client::new(&aws_cfg);
-
-            Some(Arc::new(ObjectStoreResultStore {
-                settings: cfg.clone(),
-                client,
-            }))
-        } else {
-            None
+        let object_store = match settings.object_store.clone() {
+            Some(cfg) => Some(Arc::new(ObjectStoreResultStore::new(cfg.clone())?)),
+            None => None,
         };
 
         Ok(ResultStoreHandles {
@@ -295,7 +303,9 @@ impl ResultStoreHandles {
                     self.db.save_metrics(&result.metrics).await
                 }
             }
-            _ => self.db.save_metrics(&result.metrics).await,
+            OutputConfig::Hybrid { .. }
+            | OutputConfig::DbOnly
+            | OutputConfig::ObjectStore { .. } => self.db.save_metrics(&result.metrics).await,
         }
     }
 
