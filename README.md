@@ -149,23 +149,48 @@ Later phases will extend this to **text-to-image, multi-modal, advanced error sl
 
 ---
 
-## Technology Stack (Planned)
-
-- **Frontend**
-  - React + (Next.js or Vite)
-  - UI library: Ant Design or MUI
-  - Charts: ECharts / Recharts
+## Technology Stack
 
 - **Backend**
-  - Python (FastAPI or similar) for HTTP APIs
-  - Python worker processes for eval and training integration
-  - Queue: Redis-based job queue (RQ / Celery) in Phase 1
+  - Rust workspace (Axum for HTTP, SQLx/SeaORM-ready domain layer)
+  - Redis (deadpool-redis) for run queues
+  - Worker crate executes subprocess integrations (lm-eval-harness, OpenCompass, HELM, etc.)
+
+- **Frontend**
+  - Vue 3 + TypeScript + Vite
+  - Basic Pinia store + Vue Router for navigation
 
 - **Storage**
-  - Relational DB (PostgreSQL / MySQL) for metadata (models, tasks, experiments, runs, metrics)
-  - Object storage or filesystem for artifacts (logs, images, videos, exported results)
+  - MySQL for metadata tables (projects, models, datasets, runs, metrics)
+  - ClickHouse / Object storage planned via `OutputConfig` once scale requires it
 
-This stack aligns with the Python ecosystem for evaluation frameworks and provides a straightforward path to scale out later.
+This stack keeps the orchestrator strongly typed end-to-end while remaining compatible with Python-based eval frameworks via subprocess adapters.
+
+## Getting Started
+
+1. **Backend**
+   ```bash
+   cd backend
+   cargo fmt
+   cargo check
+   cargo run -p unified-api
+   ```
+   The server expects a MySQL instance (see `backend/config/default.toml`). Update that file or set `UEP__DATABASE__URL` env var, then run migrations manually (schema definition is documented in `.cursor/rules/07-eval-domain.mdc`).
+
+2. **Worker**
+   ```bash
+   cd backend
+   cargo run -p unified-worker
+   ```
+   Workers pull runs from Redis and transition them through `queued -> running -> completed` (the execution logic is stubbed for Phase 1 but already updates DB state).
+
+3. **Frontend**
+   ```bash
+   cd frontend
+   npm install
+   npm run dev
+   ```
+   The Vue app proxies `/api/*` to the Rust backend. Use the Models/Runs pages to query data by `project_id`.
 
 ---
 

@@ -1,0 +1,16 @@
+[database]
+url = "mysql://user:password@localhost:3306/unified_eval"
+
+[redis]
+url = "redis://localhost:6379"
+queue_key = "runs:queue"
+dlq_key = "runs:dlq"
+
+[queues]
+max_parallel_jobs = 2
+max_parallel_gpu_jobs = 1
+max_gpus_total = 1
+
+[integrations]
+third_party_root = "./third_party"
+
